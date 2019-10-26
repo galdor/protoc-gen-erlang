@@ -18,6 +18,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/galdor/protoc-gen-erlang/generator"
 	"github.com/golang/protobuf/proto"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 )
@@ -36,12 +37,18 @@ func main() {
 		die("cannot decode request: %v", err)
 	}
 
-	// Process input files
-	var res plugin.CodeGeneratorResponse
-	// TODO
+	// Generate output data
+	g, err := generator.NewGenerator(&req)
+	if err != nil {
+		die("cannot create generator: %v", err)
+	}
+
+	if err := g.GenerateOutput(); err != nil {
+		die("cannot generate output: %v", err)
+	}
 
 	// Write the response
-	output, err := proto.Marshal(&res)
+	output, err := proto.Marshal(g.Response)
 	if err != nil {
 		die("cannot encode response: %v", err)
 	}
@@ -49,14 +56,6 @@ func main() {
 	if _, err := os.Stdout.Write(output); err != nil {
 		die("cannot write to stdout: %v", err)
 	}
-}
-
-func info(format string, args ...interface{}) {
-	if !verbose {
-		return
-	}
-
-	fmt.Fprintf(os.Stderr, format+"\n", args...)
 }
 
 func die(format string, args ...interface{}) {
