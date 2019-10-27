@@ -3,7 +3,7 @@ BIN = protoc-gen-erlang
 
 all: $(BIN)
 
-$(BIN):
+$(BIN): FORCE
 	go build .
 
 test:
@@ -11,5 +11,7 @@ test:
 
 clean:
 	$(RM) $(BIN)
+
+FORCE:
 
 .PHONY: all build test clean
