@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package example.library;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+import "example/reviews.proto";
+
+enum BookType {
+  FICTION = 0;
+  NON_FICTION = 1;
+}
+
+message Book {
+  message Publication {
+    string country = 1;
+    google.protobuf.Timestamp publication_date = 2;
+  }
+
+  string isbn = 1;
+  string title = 2;
+  repeated string authors = 3;
+  repeated Publication publications = 4;
+  BookType type = 5;
+  reserved 6;
+  repeated Review reviews = 7;
+
+  reserved 8, 9, 10 to 20;
+
+  map<string, google.protobuf.Any> extra = 30;
+}
