@@ -19,20 +19,29 @@ import (
 	"text/template"
 )
 
-var erlModuleTemplateContent = `%%% Generated from protobuf package {{ .PackageName }}.
+var erlModuleTemplateContent = `
+{{- define "erl_enum" }}
+%% Generated for enum type {{ .FullName }}.
+-type {{ .ErlName }}() = undefined.
+{{- end }}
+
+{{- define "erl_message" }}
+%% Generated for message type {{ .FullName }}.
+-record({{ .ErlName }}, {}).
+-type {{ .ErlName }}() = #{{ .ErlName }}{}.
+{{- end }}
+
+%%% Generated from protobuf package {{ .PackageName }}.
 %%% DO NOT EDIT.
 
 -module({{ .ErlModuleName }}).
 
 {{ range .PackageEnumTypes }}
-%% Generated for enum type {{ .FullName }}.
--type {{ .ErlName }}() = undefined.
+{{ template "erl_enum" . }}
 {{ end }}
 
 {{ range .PackageMessageTypes }}
-%% Generated for message type {{ .FullName }}.
--record({{ .ErlName }}, {}).
--type {{ .ErlName }}() = #{{ .ErlName }}{}.
+{{ template "erl_message" . }}
 {{ end }}
 `
 
