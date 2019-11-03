@@ -37,7 +37,8 @@ type Generator struct {
 	PackageName      string
 	PackageDirectory string
 
-	MessageTypes MessageTypes
+	MessageTypes        MessageTypes
+	PackageMessageTypes MessageTypes
 
 	ErlModuleName string
 	ErlModulePath string
@@ -175,7 +176,7 @@ func (g *Generator) collectMessageTypes() error {
 		return nil
 	}
 
-	for _, fd := range g.InputFileDescriptors {
+	for _, fd := range g.Request.ProtoFile {
 		for _, d := range fd.MessageType {
 			if err := addType(fd, d, nil); err != nil {
 				return err
@@ -184,6 +185,13 @@ func (g *Generator) collectMessageTypes() error {
 	}
 
 	g.MessageTypes = mts
+
+	for _, mt := range g.MessageTypes {
+		if mt.Package == g.PackageName {
+			g.PackageMessageTypes = append(g.PackageMessageTypes, mt)
+		}
+	}
+
 	return nil
 }
 

@@ -24,7 +24,7 @@ var erlModuleTemplateContent = `%%% Generated from protobuf package {{ .PackageN
 
 -module({{ .ErlModuleName }}).
 
-{{ range .MessageTypes }}
+{{ range .PackageMessageTypes }}
 -record({{ .ErlName }}, {}).
 -type {{ .ErlName }}() = #{{ .ErlName }}{}.
 {{ end }}
