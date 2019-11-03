@@ -95,6 +95,6 @@ func EnumTypeFullName(et *EnumType) string {
 }
 
 func EnumTypeFullNameToErlTypeName(name string) string {
-	name2 := strings.ReplaceAll(name, ".", "__")
+	name2 := strings.ReplaceAll(name, ".", "_")
 	return CamelCaseToSnakeCase(name2)
 }

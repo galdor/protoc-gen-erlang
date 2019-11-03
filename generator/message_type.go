@@ -63,6 +63,6 @@ func MessageTypeFullName(mt *MessageType) string {
 }
 
 func MessageTypeFullNameToErlRecordName(name string) string {
-	name2 := strings.ReplaceAll(name, ".", "__")
+	name2 := strings.ReplaceAll(name, ".", "_")
 	return CamelCaseToSnakeCase(name2)
 }
