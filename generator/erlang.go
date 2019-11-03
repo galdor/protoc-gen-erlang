@@ -16,8 +16,7 @@ package generator
 
 import "strings"
 
-func (g *Generator) ProtoPackageNameToErlModuleName(name string) string {
-	// TODO module prefix option
+func ProtoPackageNameToErlModuleName(name string) string {
 	lowerName := strings.ToLower(name)
 	return strings.ReplaceAll(lowerName, ".", "_")
 }

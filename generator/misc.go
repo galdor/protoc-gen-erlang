@@ -15,27 +15,37 @@
 package generator
 
 import (
-	"fmt"
-	"text/template"
+	"bytes"
 )
 
-var erlModuleTemplateContent = `%%% Generated from protobuf package {{ .PackageName }}.
-%%% DO NOT EDIT.
+func CamelCaseToSnakeCase(s string) string {
+	var buf bytes.Buffer
 
--module({{ .ErlModuleName }}).
+	isUpper := func(c byte) bool { return c >= 'A' && c <= 'Z' }
+	isLower := func(c byte) bool { return c >= 'a' && c <= 'z' }
+	toLower := func(c byte) byte { return c + 'a' - 'A' }
 
-{{ range .MessageTypes }}
--record({{ .ErlName }}, {}).
--type {{ .ErlName }}() = #{{ .ErlName }}{}.
-{{ end }}
-`
+	cs := []byte(s)
 
-func ErlModuleTemplate() (*template.Template, error) {
-	tpl := template.New("erl_module")
+	for i, c := range cs {
+		if isLower(c) {
+			buf.WriteByte(c)
+			continue
+		}
 
-	if _, err := tpl.Parse(erlModuleTemplateContent); err != nil {
-		return nil, fmt.Errorf("cannot parse template: %w", err)
+		wordStart := i > 0 && isLower(cs[i-1])
+		wordEnd := i < len(cs)-1 && isLower(cs[i+1])
+
+		if i > 0 && (wordStart || wordEnd) && c != '_' && cs[i-1] != '_' {
+			buf.WriteByte('_')
+		}
+
+		if isUpper(c) {
+			c = toLower(c)
+		}
+
+		buf.WriteByte(c)
 	}
 
-	return tpl, nil
+	return buf.String()
 }

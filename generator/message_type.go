@@ -15,27 +15,43 @@
 package generator
 
 import (
-	"fmt"
-	"text/template"
+	"strings"
+
+	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 )
 
-var erlModuleTemplateContent = `%%% Generated from protobuf package {{ .PackageName }}.
-%%% DO NOT EDIT.
+type MessageType struct {
+	Parent *MessageType
 
--module({{ .ErlModuleName }}).
+	Package  string
+	Name     string
+	FullName string
 
-{{ range .MessageTypes }}
--record({{ .ErlName }}, {}).
--type {{ .ErlName }}() = #{{ .ErlName }}{}.
-{{ end }}
-`
+	ErlName string
+}
 
-func ErlModuleTemplate() (*template.Template, error) {
-	tpl := template.New("erl_module")
+type MessageTypes []*MessageType
 
-	if _, err := tpl.Parse(erlModuleTemplateContent); err != nil {
-		return nil, fmt.Errorf("cannot parse template: %w", err)
+func (messageType *MessageType) FromDescriptor(fd *descriptor.FileDescriptorProto, d *descriptor.DescriptorProto, parent *MessageType) error {
+	mt := MessageType{
+		Parent: parent,
+
+		Package: fd.GetPackage(),
+		Name:    d.GetName(),
 	}
 
-	return tpl, nil
+	for p := parent; p != nil; p = p.Parent {
+		mt.FullName += p.Name + "."
+	}
+	mt.FullName += mt.Name
+
+	mt.ErlName = MessageTypeFullNameToErlRecordName(mt.FullName)
+
+	*messageType = mt
+	return nil
+}
+
+func MessageTypeFullNameToErlRecordName(name string) string {
+	name2 := strings.ReplaceAll(name, ".", "__")
+	return CamelCaseToSnakeCase(name2)
 }

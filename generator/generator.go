@@ -37,6 +37,8 @@ type Generator struct {
 	PackageName      string
 	PackageDirectory string
 
+	MessageTypes MessageTypes
+
 	ErlModuleName string
 	ErlModulePath string
 
@@ -74,7 +76,7 @@ func (g *Generator) GenerateOutput() error {
 		return err
 	}
 
-	g.ErlModuleName = g.ProtoPackageNameToErlModuleName(g.PackageName)
+	g.ErlModuleName = ProtoPackageNameToErlModuleName(g.PackageName)
 	g.ErlModulePath = path.Join(g.PackageDirectory, g.ErlModuleName+".erl")
 
 	err := g.generateFile(g.ErlModulePath, g.erlModuleTemplate, g)
@@ -90,6 +92,7 @@ func (g *Generator) collectData() error {
 		g.collectInputFileDescriptors,
 		g.collectPackageName,
 		g.collectPackageDirectory,
+		g.collectMessageTypes,
 	}
 
 	for _, fn := range fns {
@@ -147,6 +150,40 @@ func (g *Generator) collectPackageDirectory() error {
 	}
 
 	g.PackageDirectory = dir
+	return nil
+}
+
+func (g *Generator) collectMessageTypes() error {
+	var mts MessageTypes
+
+	var addType func(*descriptor.FileDescriptorProto, *descriptor.DescriptorProto, *MessageType) error
+	addType = func(fd *descriptor.FileDescriptorProto, d *descriptor.DescriptorProto, parent *MessageType) error {
+		var mt MessageType
+		if err := mt.FromDescriptor(fd, d, parent); err != nil {
+			return fmt.Errorf("cannot create type for "+
+				"message %s in package %s: %w",
+				d.GetName(), fd.GetPackage(), err)
+		}
+		mts = append(mts, &mt)
+
+		for _, nd := range d.NestedType {
+			if err := addType(fd, nd, &mt); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	for _, fd := range g.InputFileDescriptors {
+		for _, d := range fd.MessageType {
+			if err := addType(fd, d, nil); err != nil {
+				return err
+			}
+		}
+	}
+
+	g.MessageTypes = mts
 	return nil
 }
 
