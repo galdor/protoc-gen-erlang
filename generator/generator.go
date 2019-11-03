@@ -37,8 +37,12 @@ type Generator struct {
 	PackageName      string
 	PackageDirectory string
 
-	MessageTypes        MessageTypes
-	PackageMessageTypes MessageTypes
+	MessageTypes            MessageTypes
+	PackageMessageTypes     MessageTypes
+	DescriptorToMessageType map[*descriptor.DescriptorProto]*MessageType
+
+	EnumTypes        EnumTypes
+	PackageEnumTypes EnumTypes
 
 	ErlModuleName string
 	ErlModulePath string
@@ -94,6 +98,7 @@ func (g *Generator) collectData() error {
 		g.collectPackageName,
 		g.collectPackageDirectory,
 		g.collectMessageTypes,
+		g.collectEnumTypes,
 	}
 
 	for _, fn := range fns {
@@ -157,6 +162,8 @@ func (g *Generator) collectPackageDirectory() error {
 func (g *Generator) collectMessageTypes() error {
 	var mts MessageTypes
 
+	descriptorToMessageType := make(map[*descriptor.DescriptorProto]*MessageType)
+
 	var addType func(*descriptor.FileDescriptorProto, *descriptor.DescriptorProto, *MessageType) error
 	addType = func(fd *descriptor.FileDescriptorProto, d *descriptor.DescriptorProto, parent *MessageType) error {
 		var mt MessageType
@@ -165,7 +172,9 @@ func (g *Generator) collectMessageTypes() error {
 				"message %s in package %s: %w",
 				d.GetName(), fd.GetPackage(), err)
 		}
+
 		mts = append(mts, &mt)
+		descriptorToMessageType[d] = &mt
 
 		for _, nd := range d.NestedType {
 			if err := addType(fd, nd, &mt); err != nil {
@@ -185,10 +194,76 @@ func (g *Generator) collectMessageTypes() error {
 	}
 
 	g.MessageTypes = mts
+	g.DescriptorToMessageType = descriptorToMessageType
 
 	for _, mt := range g.MessageTypes {
 		if mt.Package == g.PackageName {
 			g.PackageMessageTypes = append(g.PackageMessageTypes, mt)
+		}
+	}
+
+	return nil
+}
+
+func (g *Generator) collectEnumTypes() error {
+	var ets EnumTypes
+
+	var addType func(*descriptor.FileDescriptorProto, *descriptor.EnumDescriptorProto, *MessageType) error
+	addType = func(fd *descriptor.FileDescriptorProto, ed *descriptor.EnumDescriptorProto, parent *MessageType) error {
+		var et EnumType
+		if err := et.FromDescriptor(fd, ed, parent); err != nil {
+			return fmt.Errorf("cannot create type for "+
+				"enum %s in package %s: %w",
+				ed.GetName(), fd.GetPackage(), err)
+		}
+		ets = append(ets, &et)
+
+		return nil
+	}
+
+	var addNestedType func(*descriptor.FileDescriptorProto, *descriptor.DescriptorProto) error
+	addNestedType = func(fd *descriptor.FileDescriptorProto, d *descriptor.DescriptorProto) error {
+		mt, found := g.DescriptorToMessageType[d]
+		if !found {
+			return fmt.Errorf("no message type found for "+
+				"message %s in package %s",
+				d.GetName(), fd.GetPackage())
+		}
+
+		for _, ed := range d.EnumType {
+			if err := addType(fd, ed, mt); err != nil {
+				return err
+			}
+		}
+
+		for _, nd := range d.NestedType {
+			if err := addNestedType(fd, nd); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	for _, fd := range g.Request.ProtoFile {
+		for _, ed := range fd.EnumType {
+			if err := addType(fd, ed, nil); err != nil {
+				return err
+			}
+		}
+
+		for _, d := range fd.MessageType {
+			if err := addNestedType(fd, d); err != nil {
+				return err
+			}
+		}
+	}
+
+	g.EnumTypes = ets
+
+	for _, et := range g.EnumTypes {
+		if et.Package == g.PackageName {
+			g.PackageEnumTypes = append(g.PackageEnumTypes, et)
 		}
 	}
 

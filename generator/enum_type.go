@@ -20,7 +20,7 @@ import (
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 )
 
-type MessageType struct {
+type EnumType struct {
 	Parent *MessageType
 
 	Package  string
@@ -30,39 +30,32 @@ type MessageType struct {
 	ErlName string
 }
 
-type MessageTypes []*MessageType
+type EnumTypes []*EnumType
 
-func (messageType *MessageType) FromDescriptor(fd *descriptor.FileDescriptorProto, d *descriptor.DescriptorProto, parent *MessageType) error {
-	mt := MessageType{
+func (enumType *EnumType) FromDescriptor(fd *descriptor.FileDescriptorProto, ed *descriptor.EnumDescriptorProto, parent *MessageType) error {
+	et := EnumType{
 		Parent: parent,
 
 		Package: fd.GetPackage(),
-		Name:    d.GetName(),
+		Name:    ed.GetName(),
 	}
 
-	mt.FullName = MessageTypeFullName(&mt)
-	mt.ErlName = MessageTypeFullNameToErlRecordName(mt.FullName)
+	et.FullName = EnumTypeFullName(&et)
+	et.ErlName = EnumTypeFullNameToErlTypeName(et.FullName)
 
-	*messageType = mt
+	*enumType = et
 	return nil
 }
 
-func MessageTypeFullName(mt *MessageType) string {
-	var parts []string
-
-	for ; mt != nil; mt = mt.Parent {
-		parts = append(parts, mt.Name)
+func EnumTypeFullName(et *EnumType) string {
+	if et.Parent == nil {
+		return et.Name
 	}
 
-	for i := len(parts)/2 - 1; i >= 0; i-- {
-		j := len(parts) - 1 - i
-		parts[i], parts[j] = parts[j], parts[i]
-	}
-
-	return strings.Join(parts, ".")
+	return MessageTypeFullName(et.Parent) + "." + et.Name
 }
 
-func MessageTypeFullNameToErlRecordName(name string) string {
+func EnumTypeFullNameToErlTypeName(name string) string {
 	name2 := strings.ReplaceAll(name, ".", "__")
 	return CamelCaseToSnakeCase(name2)
 }

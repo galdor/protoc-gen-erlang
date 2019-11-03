@@ -24,7 +24,13 @@ var erlModuleTemplateContent = `%%% Generated from protobuf package {{ .PackageN
 
 -module({{ .ErlModuleName }}).
 
+{{ range .PackageEnumTypes }}
+%% Generated for enum type {{ .FullName }}.
+-type {{ .ErlName }}() = undefined.
+{{ end }}
+
 {{ range .PackageMessageTypes }}
+%% Generated for message type {{ .FullName }}.
 -record({{ .ErlName }}, {}).
 -type {{ .ErlName }}() = #{{ .ErlName }}{}.
 {{ end }}

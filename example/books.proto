@@ -14,8 +14,14 @@ enum BookType {
 
 message Book {
   message Publication {
+    enum PublicationStatus {
+      AVAILABLE = 0;
+      OUT_OF_PRINT = 1;
+    }
+
     string country = 1;
     google.protobuf.Timestamp publication_date = 2;
+    PublicationStatus status = 3;
   }
 
   string isbn = 1;
