@@ -22,7 +22,7 @@ import (
 var erlModuleTemplateContent = `
 {{- define "erl_enum" }}
 %% Generated for enum type {{ .FullName }}.
--type {{ .ErlName }}() = undefined.
+-type {{ .ErlName }}() ={{ range $i, $v := .Values }}{{ if gt $i 0 }} |{{ end}} {{ .ErlName }}{{ end }}.
 {{- end }}
 
 {{- define "erl_message" }}
