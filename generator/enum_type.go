@@ -15,10 +15,36 @@
 package generator
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 )
+
+type EnumValue struct {
+	Name   string
+	Number int
+
+	ErlName string
+}
+
+type EnumValues []*EnumValue
+
+func (enumValue *EnumValue) FromDescriptor(evd *descriptor.EnumValueDescriptorProto) error {
+	ev := EnumValue{
+		Name:   evd.GetName(),
+		Number: int(evd.GetNumber()),
+	}
+
+	ev.ErlName = EnumValueNameToErlAtom(ev.Name)
+
+	*enumValue = ev
+	return nil
+}
+
+func EnumValueNameToErlAtom(name string) string {
+	return strings.ToLower(name)
+}
 
 type EnumType struct {
 	Parent *MessageType
@@ -26,6 +52,8 @@ type EnumType struct {
 	Package  string
 	Name     string
 	FullName string
+
+	Values EnumValues
 
 	ErlName string
 }
@@ -42,6 +70,17 @@ func (enumType *EnumType) FromDescriptor(fd *descriptor.FileDescriptorProto, ed 
 
 	et.FullName = EnumTypeFullName(&et)
 	et.ErlName = EnumTypeFullNameToErlTypeName(et.FullName)
+
+	for _, evd := range ed.Value {
+		var ev EnumValue
+		if err := ev.FromDescriptor(evd); err != nil {
+			return fmt.Errorf("cannot create value for "+
+				"enum value %s of enum %s in package %s: %w",
+				evd.GetName(), ed.GetName(), fd.GetPackage(), err)
+		}
+
+		et.Values = append(et.Values, &ev)
+	}
 
 	*enumType = et
 	return nil
