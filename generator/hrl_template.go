@@ -19,37 +19,24 @@ import (
 	"text/template"
 )
 
-var erlModuleTemplateContent = `
-{{- define "erl_enum" }}
-%% Generated for enum type {{ .FullName }}.
--type {{ .ErlName }}() ={{ range $i, $v := .Values }}{{ if gt $i 0 }} |{{ end}} {{ .ErlName }}{{ end }}.
-{{- end }}
-
+var erlHRLTemplateContent = `
 {{- define "erl_message" }}
 %% Generated for message type {{ .FullName }}.
--type {{ .ErlName }}() = #{{ .ErlName }}{}.
+-record({{ .ErlName }}, {}).
 {{- end }}
 
 %%% Generated from protobuf package {{ .PackageName }}.
 %%% DO NOT EDIT.
-
--module({{ .ErlModuleName }}).
-
--include("{{ .ErlModuleName }}.hrl").
-
-{{ range .PackageEnumTypes }}
-{{ template "erl_enum" . }}
-{{ end }}
 
 {{ range .PackageMessageTypes }}
 {{ template "erl_message" . }}
 {{ end }}
 `
 
-func ErlModuleTemplate() (*template.Template, error) {
-	tpl := template.New("erl_module")
+func ErlHRLTemplate() (*template.Template, error) {
+	tpl := template.New("erl_hrl")
 
-	if _, err := tpl.Parse(erlModuleTemplateContent); err != nil {
+	if _, err := tpl.Parse(erlHRLTemplateContent); err != nil {
 		return nil, fmt.Errorf("cannot parse template: %w", err)
 	}
 

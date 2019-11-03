@@ -1,2 +1,3 @@
 /example/*.erl
+/example/*.hrl
 /protoc-gen-erlang

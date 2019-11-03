@@ -45,8 +45,10 @@ type Generator struct {
 	PackageEnumTypes EnumTypes
 
 	ErlModuleName string
+	ErlHRLPath    string
 	ErlModulePath string
 
+	erlHRLTemplate    *template.Template
 	erlModuleTemplate *template.Template
 }
 
@@ -57,6 +59,13 @@ func NewGenerator(req *plugin.CodeGeneratorRequest) (*Generator, error) {
 
 		Verbose: true,
 	}
+
+	erlHRLTemplate, err := ErlHRLTemplate()
+	if err != nil {
+		return nil, fmt.Errorf(
+			"cannot create erlang hrl template: %w", err)
+	}
+	g.erlHRLTemplate = erlHRLTemplate
 
 	erlModuleTemplate, err := ErlModuleTemplate()
 	if err != nil {
@@ -82,9 +91,18 @@ func (g *Generator) GenerateOutput() error {
 	}
 
 	g.ErlModuleName = ProtoPackageNameToErlModuleName(g.PackageName)
+
+	g.ErlHRLPath = path.Join(g.PackageDirectory, g.ErlModuleName+".hrl")
 	g.ErlModulePath = path.Join(g.PackageDirectory, g.ErlModuleName+".erl")
 
-	err := g.generateFile(g.ErlModulePath, g.erlModuleTemplate, g)
+	var err error
+
+	err = g.generateFile(g.ErlHRLPath, g.erlHRLTemplate, g)
+	if err != nil {
+		return fmt.Errorf("cannot generate erlang hrl file: %w", err)
+	}
+
+	err = g.generateFile(g.ErlModulePath, g.erlModuleTemplate, g)
 	if err != nil {
 		return fmt.Errorf("cannot generate erlang module: %w", err)
 	}
