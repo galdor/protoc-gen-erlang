@@ -15,6 +15,7 @@
 package generator
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -74,8 +75,11 @@ func (enumType *EnumType) FromDescriptor(fd *descriptor.FileDescriptorProto, ed 
 	et.AbsoluteName = "." + et.Package + "." + et.FullName
 
 	et.ErlPackage = ProtoPackageNameToErlModuleName(et.Package)
-	et.ErlName = EnumTypeFullNameToErlTypeName(et.FullName)
+	et.ErlName = EnumTypeFullNameToErlName(et.FullName)
 
+	if len(ed.Value) == 0 {
+		return errors.New("no value found")
+	}
 	for _, evd := range ed.Value {
 		var ev EnumValue
 		if err := ev.FromDescriptor(evd); err != nil {
@@ -99,7 +103,7 @@ func EnumTypeFullName(et *EnumType) string {
 	return MessageTypeFullName(et.Parent) + "." + et.Name
 }
 
-func EnumTypeFullNameToErlTypeName(name string) string {
+func EnumTypeFullNameToErlName(name string) string {
 	name2 := strings.ReplaceAll(name, ".", "_")
 	return CamelCaseToSnakeCase(name2)
 }

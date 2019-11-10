@@ -34,10 +34,9 @@ type FieldType struct {
 	TypeId   FieldTypeId
 	TypeName string
 
-	// TODO default value (representation?)
-
-	ErlName     string
-	ErlTypeName string // available after type resolution
+	ErlName         string
+	ErlTypeSpec     string // available after type resolution
+	ErlDefaultValue string // available after type resolution
 }
 
 type FieldTypes []*FieldType
@@ -65,6 +64,10 @@ func (fieldType *FieldType) FromDescriptor(fid *descriptor.FieldDescriptorProto)
 		return fmt.Errorf("unsupported extendee field")
 	}
 
+	if fid.GetDefaultValue() != "" {
+		return fmt.Errorf("unsupported default value")
+	}
+
 	if err := ft.TypeId.FromProto(fid.GetType()); err != nil {
 		return fmt.Errorf("invalid type %d: %w", fid.GetType(), err)
 	}
@@ -78,35 +81,50 @@ func (fieldType *FieldType) FromDescriptor(fid *descriptor.FieldDescriptorProto)
 func (ft *FieldType) ResolveType(absNameResolver AbsoluteNameResolver) error {
 	switch ft.TypeId {
 	case FieldTypeIdBool:
-		ft.ErlTypeName = "boolean()"
+		ft.ErlTypeSpec = "boolean()"
+		ft.ErlDefaultValue = "false"
 	case FieldTypeIdFloat:
-		ft.ErlTypeName = "float()"
+		ft.ErlTypeSpec = "float()"
+		ft.ErlDefaultValue = "0.0"
 	case FieldTypeIdDouble:
-		ft.ErlTypeName = "float()"
+		ft.ErlTypeSpec = "float()"
+		ft.ErlDefaultValue = "0.0"
 	case FieldTypeIdInt32:
-		ft.ErlTypeName = "-2147483648..2147483647"
+		ft.ErlTypeSpec = "-2147483648..2147483647"
+		ft.ErlDefaultValue = "0"
 	case FieldTypeIdInt64:
-		ft.ErlTypeName = "-9223372036854775808..9223372036854775807"
+		ft.ErlTypeSpec = "-9223372036854775808..9223372036854775807"
+		ft.ErlDefaultValue = "0"
 	case FieldTypeIdUInt32:
-		ft.ErlTypeName = "0..4294967295"
+		ft.ErlTypeSpec = "0..4294967295"
+		ft.ErlDefaultValue = "0"
 	case FieldTypeIdUInt64:
-		ft.ErlTypeName = "0..18446744073709551615"
+		ft.ErlTypeSpec = "0..18446744073709551615"
+		ft.ErlDefaultValue = "0"
 	case FieldTypeIdSInt32:
-		ft.ErlTypeName = "-2147483648..2147483647"
+		ft.ErlTypeSpec = "-2147483648..2147483647"
+		ft.ErlDefaultValue = "0"
 	case FieldTypeIdSInt64:
-		ft.ErlTypeName = "-9223372036854775808..9223372036854775807"
+		ft.ErlTypeSpec = "-9223372036854775808..9223372036854775807"
+		ft.ErlDefaultValue = "0"
 	case FieldTypeIdFixed32:
-		ft.ErlTypeName = "-2147483648..2147483647"
+		ft.ErlTypeSpec = "-2147483648..2147483647"
+		ft.ErlDefaultValue = "0"
 	case FieldTypeIdFixed64:
-		ft.ErlTypeName = "-9223372036854775808..9223372036854775807"
+		ft.ErlTypeSpec = "-9223372036854775808..9223372036854775807"
+		ft.ErlDefaultValue = "0"
 	case FieldTypeIdSFixed32:
-		ft.ErlTypeName = "-2147483648..2147483647"
+		ft.ErlTypeSpec = "-2147483648..2147483647"
+		ft.ErlDefaultValue = "0"
 	case FieldTypeIdSFixed64:
-		ft.ErlTypeName = "-9223372036854775808..9223372036854775807"
+		ft.ErlTypeSpec = "-9223372036854775808..9223372036854775807"
+		ft.ErlDefaultValue = "0"
 	case FieldTypeIdString:
-		ft.ErlTypeName = "iodata()"
+		ft.ErlTypeSpec = "iodata()"
+		ft.ErlDefaultValue = "[]"
 	case FieldTypeIdBytes:
-		ft.ErlTypeName = "iodata()"
+		ft.ErlTypeSpec = "iodata()"
+		ft.ErlDefaultValue = "[]"
 
 	case FieldTypeIdGroup:
 		return fmt.Errorf("unsupported field type %q", ft.TypeId)
@@ -118,7 +136,9 @@ func (ft *FieldType) ResolveType(absNameResolver AbsoluteNameResolver) error {
 		}
 
 		ft.EnumType = et
-		ft.ErlTypeName = et.ErlPackage + ":" + et.ErlName + "()"
+		ft.ErlTypeSpec = et.ErlPackage + ":" + et.ErlName + "()"
+
+		ft.ErlDefaultValue = et.Values[0].ErlName
 
 	case FieldTypeIdMessage:
 		mt := absNameResolver.FindMessageType(ft.TypeName)
@@ -128,14 +148,16 @@ func (ft *FieldType) ResolveType(absNameResolver AbsoluteNameResolver) error {
 		}
 
 		ft.MessageType = mt
-		ft.ErlTypeName = mt.ErlPackage + ":" + mt.ErlName + "()"
+		ft.ErlTypeSpec = fmt.Sprintf("undefined | %s:%s()",
+			mt.ErlPackage, mt.ErlName)
+		ft.ErlDefaultValue = "undefined"
 
 	default:
 		return fmt.Errorf("unhandled type %q", string(ft.TypeId))
 	}
 
 	if ft.Repeated {
-		ft.ErlTypeName = "list(" + ft.ErlTypeName + ")"
+		ft.ErlTypeSpec = "list(" + ft.ErlTypeSpec + ")"
 	}
 
 	return nil

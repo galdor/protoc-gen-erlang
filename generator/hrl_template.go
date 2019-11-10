@@ -21,7 +21,7 @@ import (
 
 var erlHRLTemplateContent = `
 {{- define "erl_field" }}
-  {{ .ErlName }} :: undefined | {{ .ErlTypeName }}
+  {{ .ErlName }} = {{ .ErlDefaultValue }} :: {{ .ErlTypeSpec }}
 {{- end }}
 
 {{- define "erl_message" }}
