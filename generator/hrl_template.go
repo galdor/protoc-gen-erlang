@@ -20,16 +20,24 @@ import (
 )
 
 var erlHRLTemplateContent = `
+{{- define "erl_field" }}
+  {{ .ErlName }} :: undefined | {{ .ErlTypeName }}
+{{- end }}
+
 {{- define "erl_message" }}
 %% Generated for message type {{ .FullName }}.
--record({{ .ErlName }}, {}).
+-record({{ .ErlName }}, {
+  {{- range $i, $f := .Fields }}
+  {{- if gt $i 0 }},{{ end}}{{- template "erl_field" . }}
+  {{- end }}
+}).
 {{- end }}
 
 %%% Generated from protobuf package {{ .PackageName }}.
 %%% DO NOT EDIT.
 
 {{ range .PackageMessageTypes }}
-{{ template "erl_message" . }}
+{{- template "erl_message" . }}
 {{ end }}
 `
 

@@ -15,6 +15,7 @@
 package generator
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
@@ -23,11 +24,15 @@ import (
 type MessageType struct {
 	Parent *MessageType
 
-	Package  string
-	Name     string
-	FullName string
+	Package      string
+	Name         string
+	FullName     string
+	AbsoluteName string
 
-	ErlName string
+	ErlPackage string
+	ErlName    string
+
+	Fields FieldTypes
 }
 
 type MessageTypes []*MessageType
@@ -41,9 +46,33 @@ func (messageType *MessageType) FromDescriptor(fd *descriptor.FileDescriptorProt
 	}
 
 	mt.FullName = MessageTypeFullName(&mt)
+	mt.AbsoluteName = "." + mt.Package + "." + mt.FullName
+
+	mt.ErlPackage = ProtoPackageNameToErlModuleName(mt.Package)
 	mt.ErlName = MessageTypeFullNameToErlRecordName(mt.FullName)
 
+	for _, fid := range d.Field {
+		var ft FieldType
+		if err := ft.FromDescriptor(fid); err != nil {
+			return fmt.Errorf("invalid field %q: %w",
+				fid.GetName(), err)
+		}
+
+		mt.Fields = append(mt.Fields, &ft)
+	}
+
 	*messageType = mt
+	return nil
+}
+
+func (mt *MessageType) ResolveTypes(absNameResolver AbsoluteNameResolver) error {
+	for _, ft := range mt.Fields {
+		if err := ft.ResolveType(absNameResolver); err != nil {
+			return fmt.Errorf("cannot resolve type of field %q: %w",
+				ft.Name, err)
+		}
+	}
+
 	return nil
 }
 

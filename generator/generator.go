@@ -26,6 +26,11 @@ import (
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 )
 
+type AbsoluteNameResolver interface {
+	FindMessageType(string) *MessageType
+	FindEnumType(string) *EnumType
+}
+
 type Generator struct {
 	Request  *plugin.CodeGeneratorRequest
 	Response *plugin.CodeGeneratorResponse
@@ -37,12 +42,14 @@ type Generator struct {
 	PackageName      string
 	PackageDirectory string
 
-	MessageTypes            MessageTypes
-	PackageMessageTypes     MessageTypes
-	DescriptorToMessageType map[*descriptor.DescriptorProto]*MessageType
+	MessageTypes              MessageTypes
+	PackageMessageTypes       MessageTypes
+	DescriptorToMessageType   map[*descriptor.DescriptorProto]*MessageType
+	AbsoluteNameToMessageType map[string]*MessageType
 
-	EnumTypes        EnumTypes
-	PackageEnumTypes EnumTypes
+	EnumTypes              EnumTypes
+	PackageEnumTypes       EnumTypes
+	AbsoluteNameToEnumType map[string]*EnumType
 
 	ErlModuleName string
 	ErlHRLPath    string
@@ -110,6 +117,24 @@ func (g *Generator) GenerateOutput() error {
 	return nil
 }
 
+func (g *Generator) FindMessageType(absName string) *MessageType {
+	mt, found := g.AbsoluteNameToMessageType[absName]
+	if !found {
+		return nil
+	}
+
+	return mt
+}
+
+func (g *Generator) FindEnumType(absName string) *EnumType {
+	et, found := g.AbsoluteNameToEnumType[absName]
+	if !found {
+		return nil
+	}
+
+	return et
+}
+
 func (g *Generator) collectData() error {
 	fns := []func() error{
 		g.collectInputFileDescriptors,
@@ -117,6 +142,7 @@ func (g *Generator) collectData() error {
 		g.collectPackageDirectory,
 		g.collectMessageTypes,
 		g.collectEnumTypes,
+		g.resolveTypes,
 	}
 
 	for _, fn := range fns {
@@ -181,6 +207,7 @@ func (g *Generator) collectMessageTypes() error {
 	var mts MessageTypes
 
 	descriptorToMessageType := make(map[*descriptor.DescriptorProto]*MessageType)
+	absoluteNameToMessageType := make(map[string]*MessageType)
 
 	var addType func(*descriptor.FileDescriptorProto, *descriptor.DescriptorProto, *MessageType) error
 	addType = func(fd *descriptor.FileDescriptorProto, d *descriptor.DescriptorProto, parent *MessageType) error {
@@ -192,7 +219,9 @@ func (g *Generator) collectMessageTypes() error {
 		}
 
 		mts = append(mts, &mt)
+
 		descriptorToMessageType[d] = &mt
+		absoluteNameToMessageType[mt.AbsoluteName] = &mt
 
 		for _, nd := range d.NestedType {
 			if err := addType(fd, nd, &mt); err != nil {
@@ -213,6 +242,7 @@ func (g *Generator) collectMessageTypes() error {
 
 	g.MessageTypes = mts
 	g.DescriptorToMessageType = descriptorToMessageType
+	g.AbsoluteNameToMessageType = absoluteNameToMessageType
 
 	for _, mt := range g.MessageTypes {
 		if mt.Package == g.PackageName {
@@ -226,6 +256,8 @@ func (g *Generator) collectMessageTypes() error {
 func (g *Generator) collectEnumTypes() error {
 	var ets EnumTypes
 
+	absoluteNameToEnumType := make(map[string]*EnumType)
+
 	var addType func(*descriptor.FileDescriptorProto, *descriptor.EnumDescriptorProto, *MessageType) error
 	addType = func(fd *descriptor.FileDescriptorProto, ed *descriptor.EnumDescriptorProto, parent *MessageType) error {
 		var et EnumType
@@ -234,7 +266,10 @@ func (g *Generator) collectEnumTypes() error {
 				"enum %s in package %s: %w",
 				ed.GetName(), fd.GetPackage(), err)
 		}
+
 		ets = append(ets, &et)
+
+		absoluteNameToEnumType[et.AbsoluteName] = &et
 
 		return nil
 	}
@@ -282,6 +317,19 @@ func (g *Generator) collectEnumTypes() error {
 	for _, et := range g.EnumTypes {
 		if et.Package == g.PackageName {
 			g.PackageEnumTypes = append(g.PackageEnumTypes, et)
+		}
+	}
+
+	g.AbsoluteNameToEnumType = absoluteNameToEnumType
+
+	return nil
+}
+
+func (g *Generator) resolveTypes() error {
+	for _, mt := range g.MessageTypes {
+		if err := mt.ResolveTypes(g); err != nil {
+			return fmt.Errorf("cannot resolve types in message %q "+
+				"of package %q: %w", mt.Name, mt.Package, err)
 		}
 	}
 

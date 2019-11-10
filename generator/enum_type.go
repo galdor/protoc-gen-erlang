@@ -49,13 +49,15 @@ func EnumValueNameToErlAtom(name string) string {
 type EnumType struct {
 	Parent *MessageType
 
-	Package  string
-	Name     string
-	FullName string
+	Package      string
+	Name         string
+	FullName     string
+	AbsoluteName string
 
 	Values EnumValues
 
-	ErlName string
+	ErlPackage string
+	ErlName    string
 }
 
 type EnumTypes []*EnumType
@@ -69,6 +71,9 @@ func (enumType *EnumType) FromDescriptor(fd *descriptor.FileDescriptorProto, ed 
 	}
 
 	et.FullName = EnumTypeFullName(&et)
+	et.AbsoluteName = "." + et.Package + "." + et.FullName
+
+	et.ErlPackage = ProtoPackageNameToErlModuleName(et.Package)
 	et.ErlName = EnumTypeFullNameToErlTypeName(et.FullName)
 
 	for _, evd := range ed.Value {
