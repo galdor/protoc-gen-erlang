@@ -22,12 +22,12 @@ import (
 var erlModuleTemplateContent = `
 {{- define "erl_enum" }}
 %% Generated for enum type {{ .FullName }}.
--type {{ .ErlName }}() ={{ range $i, $v := .Values }}{{ if gt $i 0 }} |{{ end}} {{ .ErlName }}{{ end }}.
+-type {{ .ErlName }}() ::{{ range $i, $v := .Values }}{{ if gt $i 0 }} |{{ end}} {{ .ErlName }}{{ end }}.
 {{- end }}
 
 {{- define "erl_message" }}
 %% Generated for message type {{ .FullName }}.
--type {{ .ErlName }}() = #{{ .ErlName }}{}.
+-type {{ .ErlName }}() :: #{{ .ErlName }}{}.
 {{- end }}
 
 %%% Generated from protobuf package {{ .PackageName }}.
