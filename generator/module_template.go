@@ -37,6 +37,20 @@ var erlModuleTemplateContent = `
 
 -include("{{ .ErlModuleName }}.hrl").
 
+-export_type([
+  {{- range $i, $e := .PackageEnumTypes }}
+  {{- if gt $i 0 }},{{ end }}
+  {{ $e.ErlName }}/0
+  {{- end }}
+]).
+
+-export_type([
+  {{- range $i, $m := .PackageMessageTypes }}
+  {{- if gt $i 0 }},{{ end }}
+  {{ $m.ErlName }}/0
+  {{- end }}
+]).
+
 {{ range .PackageEnumTypes }}
 {{ template "erl_enum" . }}
 {{ end }}

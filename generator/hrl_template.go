@@ -28,7 +28,7 @@ var erlHRLTemplateContent = `
 %% Generated for message type {{ .FullName }}.
 -record({{ .ErlName }}, {
   {{- range $i, $f := .Fields }}
-  {{- if gt $i 0 }},{{ end}}{{- template "erl_field" . }}
+  {{- if gt $i 0 }},{{ end }}{{- template "erl_field" . }}
   {{- end }}
 }).
 {{- end }}
