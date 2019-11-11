@@ -28,6 +28,14 @@ var erlModuleTemplateContent = `
 {{- define "erl_message" }}
 %% Generated for message type {{ .FullName }}.
 -type {{ .ErlName }}() :: #{{ .ErlName }}{}.
+
+-spec encode_{{ .ErlName }}({{ .ErlName }}()) -> iodata().
+encode_{{ .ErlName }}(Message) ->
+  undefined.
+
+-spec decode_{{ .ErlName }}(iodata()) -> {{ "{" }}{{ .ErlName }}(), iodata()}.
+decode_{{ .ErlName }}(Data) ->
+  undefined.
 {{- end }}
 
 %%% Generated from protobuf package {{ .PackageName }}.
