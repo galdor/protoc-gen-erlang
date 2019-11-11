@@ -158,6 +158,7 @@ func (ft *FieldType) ResolveType(absNameResolver AbsoluteNameResolver) error {
 
 	if ft.Repeated {
 		ft.ErlTypeSpec = "list(" + ft.ErlTypeSpec + ")"
+		ft.ErlDefaultValue = "[]"
 	}
 
 	return nil
