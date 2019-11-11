@@ -148,8 +148,10 @@ func (ft *FieldType) ResolveType(absNameResolver AbsoluteNameResolver) error {
 		}
 
 		ft.MessageType = mt
-		ft.ErlTypeSpec = fmt.Sprintf("undefined | %s:%s()",
-			mt.ErlPackage, mt.ErlName)
+		ft.ErlTypeSpec = mt.ErlPackage + ":" + mt.ErlName + "()"
+		if !ft.Repeated {
+			ft.ErlTypeSpec = "undefined | " + ft.ErlTypeSpec
+		}
 		ft.ErlDefaultValue = "undefined"
 
 	default:
