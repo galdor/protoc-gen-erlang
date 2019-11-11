@@ -59,6 +59,14 @@ decode_{{ .ErlName }}(Data) ->
   {{- end }}
 ]).
 
+-export([
+  {{- range $i, $m := .PackageMessageTypes }}
+  {{- if gt $i 0 }},{{ end }}
+  encode_{{ $m.ErlName }}/1,
+  decode_{{ $m.ErlName }}/1
+  {{- end }}
+]).
+
 {{ range .PackageEnumTypes }}
 {{ template "erl_enum" . }}
 {{ end }}
