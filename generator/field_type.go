@@ -35,9 +35,10 @@ type FieldType struct {
 	TypeId   FieldTypeId
 	TypeName string
 
-	ErlName         string
-	ErlTypeSpec     string // available after type resolution
-	ErlDefaultValue string // available after type resolution
+	ErlName          string
+	ErlValueTypeSpec string // available after type resolution
+	ErlTypeSpec      string // available after type resolution
+	ErlDefaultValue  string // available after type resolution
 }
 
 type FieldTypes []*FieldType
@@ -82,49 +83,49 @@ func (fieldType *FieldType) FromDescriptor(fid *descriptor.FieldDescriptorProto)
 func (ft *FieldType) ResolveType(absNameResolver AbsoluteNameResolver) error {
 	switch ft.TypeId {
 	case FieldTypeIdBool:
-		ft.ErlTypeSpec = "boolean()"
+		ft.ErlValueTypeSpec = "boolean()"
 		ft.ErlDefaultValue = "false"
 	case FieldTypeIdFloat:
-		ft.ErlTypeSpec = "float()"
+		ft.ErlValueTypeSpec = "float()"
 		ft.ErlDefaultValue = "0.0"
 	case FieldTypeIdDouble:
-		ft.ErlTypeSpec = "float()"
+		ft.ErlValueTypeSpec = "float()"
 		ft.ErlDefaultValue = "0.0"
 	case FieldTypeIdInt32:
-		ft.ErlTypeSpec = "-2147483648..2147483647"
+		ft.ErlValueTypeSpec = "-2147483648..2147483647"
 		ft.ErlDefaultValue = "0"
 	case FieldTypeIdInt64:
-		ft.ErlTypeSpec = "-9223372036854775808..9223372036854775807"
+		ft.ErlValueTypeSpec = "-9223372036854775808..9223372036854775807"
 		ft.ErlDefaultValue = "0"
 	case FieldTypeIdUInt32:
-		ft.ErlTypeSpec = "0..4294967295"
+		ft.ErlValueTypeSpec = "0..4294967295"
 		ft.ErlDefaultValue = "0"
 	case FieldTypeIdUInt64:
-		ft.ErlTypeSpec = "0..18446744073709551615"
+		ft.ErlValueTypeSpec = "0..18446744073709551615"
 		ft.ErlDefaultValue = "0"
 	case FieldTypeIdSInt32:
-		ft.ErlTypeSpec = "-2147483648..2147483647"
+		ft.ErlValueTypeSpec = "-2147483648..2147483647"
 		ft.ErlDefaultValue = "0"
 	case FieldTypeIdSInt64:
-		ft.ErlTypeSpec = "-9223372036854775808..9223372036854775807"
+		ft.ErlValueTypeSpec = "-9223372036854775808..9223372036854775807"
 		ft.ErlDefaultValue = "0"
 	case FieldTypeIdFixed32:
-		ft.ErlTypeSpec = "-2147483648..2147483647"
+		ft.ErlValueTypeSpec = "-2147483648..2147483647"
 		ft.ErlDefaultValue = "0"
 	case FieldTypeIdFixed64:
-		ft.ErlTypeSpec = "-9223372036854775808..9223372036854775807"
+		ft.ErlValueTypeSpec = "-9223372036854775808..9223372036854775807"
 		ft.ErlDefaultValue = "0"
 	case FieldTypeIdSFixed32:
-		ft.ErlTypeSpec = "-2147483648..2147483647"
+		ft.ErlValueTypeSpec = "-2147483648..2147483647"
 		ft.ErlDefaultValue = "0"
 	case FieldTypeIdSFixed64:
-		ft.ErlTypeSpec = "-9223372036854775808..9223372036854775807"
+		ft.ErlValueTypeSpec = "-9223372036854775808..9223372036854775807"
 		ft.ErlDefaultValue = "0"
 	case FieldTypeIdString:
-		ft.ErlTypeSpec = "iodata()"
+		ft.ErlValueTypeSpec = "iodata()"
 		ft.ErlDefaultValue = "[]"
 	case FieldTypeIdBytes:
-		ft.ErlTypeSpec = "iodata()"
+		ft.ErlValueTypeSpec = "iodata()"
 		ft.ErlDefaultValue = "[]"
 
 	case FieldTypeIdGroup:
@@ -137,7 +138,7 @@ func (ft *FieldType) ResolveType(absNameResolver AbsoluteNameResolver) error {
 		}
 
 		ft.EnumType = et
-		ft.ErlTypeSpec = et.ErlPackage + ":" + et.ErlName + "()"
+		ft.ErlValueTypeSpec = et.ErlPackage + ":" + et.ErlName + "()"
 
 		ft.ErlDefaultValue = et.Values[0].ErlName
 
@@ -149,19 +150,22 @@ func (ft *FieldType) ResolveType(absNameResolver AbsoluteNameResolver) error {
 		}
 
 		ft.MessageType = mt
-		ft.ErlTypeSpec = mt.ErlPackage + ":" + mt.ErlName + "()"
-		if !ft.Repeated {
-			ft.ErlTypeSpec = "undefined | " + ft.ErlTypeSpec
-		}
+		ft.ErlValueTypeSpec = mt.ErlPackage + ":" + mt.ErlName + "()"
 		ft.ErlDefaultValue = "undefined"
 
 	default:
 		return fmt.Errorf("unhandled type %q", string(ft.TypeId))
 	}
 
+	ft.ErlTypeSpec = ft.ErlValueTypeSpec
+
 	if ft.Repeated {
 		ft.ErlTypeSpec = "list(" + ft.ErlTypeSpec + ")"
 		ft.ErlDefaultValue = "[]"
+	}
+
+	if ft.TypeId == FieldTypeIdMessage && !ft.Repeated {
+		ft.ErlTypeSpec = "undefined | " + ft.ErlTypeSpec
 	}
 
 	return nil

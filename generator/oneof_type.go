@@ -56,7 +56,7 @@ func (ot *OneofType) ResolveType(absNameResolver AbsoluteNameResolver) error {
 
 	for i, ft := range ot.Fields {
 		typeSpecs[i] = fmt.Sprintf("{%s, %s}",
-			ft.ErlName, ft.ErlTypeSpec)
+			ft.ErlName, ft.ErlValueTypeSpec)
 	}
 
 	ot.ErlTypeSpec = "undefined | " + strings.Join(typeSpecs, " | ")
