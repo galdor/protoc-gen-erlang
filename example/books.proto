@@ -31,8 +31,12 @@ message Book {
   BookType type = 5;
   reserved 6;
   repeated Review reviews = 7;
+  oneof image {
+    string uri = 8;
+    bytes data = 9;
+  }
 
-  reserved 8, 9, 10 to 20;
+  reserved 10, 11, 12 to 20;
 
   map<string, google.protobuf.Any> extra = 30;
 }

@@ -32,6 +32,7 @@ type MessageType struct {
 	ErlPackage string
 	ErlName    string
 
+	Oneofs OneofTypes
 	Fields FieldTypes
 }
 
@@ -51,11 +52,34 @@ func (messageType *MessageType) FromDescriptor(fd *descriptor.FileDescriptorProt
 	mt.ErlPackage = ProtoPackageNameToErlModuleName(mt.Package)
 	mt.ErlName = MessageTypeFullNameToErlRecordName(mt.FullName)
 
+	for _, od := range d.OneofDecl {
+		var ot OneofType
+		if err := ot.FromDescriptor(od, &mt); err != nil {
+			return fmt.Errorf("invalid oneof %q: %w",
+				od.GetName(), err)
+		}
+
+		mt.Oneofs = append(mt.Oneofs, &ot)
+	}
+
 	for _, fid := range d.Field {
 		var ft FieldType
 		if err := ft.FromDescriptor(fid); err != nil {
 			return fmt.Errorf("invalid field %q: %w",
 				fid.GetName(), err)
+		}
+
+		if fid.OneofIndex != nil {
+			idx := fid.GetOneofIndex()
+			if int(idx) >= len(mt.Oneofs) {
+				return fmt.Errorf("invalid index %d for "+
+					"field %q", idx, ft.Name)
+			}
+
+			ot := mt.Oneofs[idx]
+			ot.AddField(&ft)
+
+			ft.OneofType = ot
 		}
 
 		mt.Fields = append(mt.Fields, &ft)

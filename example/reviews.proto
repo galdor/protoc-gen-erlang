@@ -5,9 +5,17 @@ package example.library;
 import "google/protobuf/timestamp.proto";
 
 message Review {
+  message MagazineArticle {
+    string magazine = 1;
+    repeated string authors = 2;
+  }
+
   uint32 id = 1;
   string book_isbn = 2;
-  string author = 3;
-  string content = 4;
-  google.protobuf.Timestamp creation_date = 5;
+  oneof source {
+    string user_name = 3;
+    MagazineArticle magazine_article = 4;
+  }
+  string content = 10;
+  google.protobuf.Timestamp creation_date = 11;
 }

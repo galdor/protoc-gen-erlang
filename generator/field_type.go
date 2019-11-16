@@ -30,6 +30,7 @@ type FieldType struct {
 
 	EnumType    *EnumType    // for enum fields
 	MessageType *MessageType // for message fields
+	OneofType   *OneofType   // for oneof fields
 
 	TypeId   FieldTypeId
 	TypeName string
