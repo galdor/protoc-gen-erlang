@@ -97,6 +97,13 @@ func (mt *MessageType) ResolveTypes(absNameResolver AbsoluteNameResolver) error 
 		}
 	}
 
+	for _, ot := range mt.Oneofs {
+		if err := ot.ResolveType(absNameResolver); err != nil {
+			return fmt.Errorf("cannot resolve type of oneof %q: %w",
+				ot.Name, err)
+		}
+	}
+
 	return nil
 }
 

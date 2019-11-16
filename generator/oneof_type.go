@@ -16,6 +16,7 @@ package generator
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 )
@@ -26,6 +27,10 @@ type OneofType struct {
 	Name string
 
 	Fields FieldTypes
+
+	ErlName         string
+	ErlTypeSpec     string // available after type resolution
+	ErlDefaultValue string // available after type resolution
 }
 
 type OneofTypes []*OneofType
@@ -36,12 +41,28 @@ func (oneofType *OneofType) FromDescriptor(od *descriptor.OneofDescriptorProto, 
 		Name:    od.GetName(),
 	}
 
+	ot.ErlName = ot.Name
+
 	*oneofType = ot
 	return nil
 }
 
 func (ot *OneofType) AddField(ft *FieldType) {
 	ot.Fields = append(ot.Fields, ft)
+}
+
+func (ot *OneofType) ResolveType(absNameResolver AbsoluteNameResolver) error {
+	typeSpecs := make([]string, len(ot.Fields))
+
+	for i, ft := range ot.Fields {
+		typeSpecs[i] = fmt.Sprintf("{%s, %s}",
+			ft.ErlName, ft.ErlTypeSpec)
+	}
+
+	ot.ErlTypeSpec = "undefined | " + strings.Join(typeSpecs, " | ")
+	ot.ErlDefaultValue = "undefined"
+
+	return nil
 }
 
 func OneofTypeNameToErlName(name string, msg *MessageType) string {

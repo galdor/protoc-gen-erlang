@@ -24,11 +24,25 @@ var erlHRLTemplateContent = `
   {{ .ErlName }} = {{ .ErlDefaultValue }} :: {{ .ErlTypeSpec }}
 {{- end }}
 
+{{- define "erl_oneof" }}
+  {{ .ErlName }} = {{ .ErlDefaultValue }} :: {{ .ErlTypeSpec }}
+{{- end }}
+
 {{- define "erl_message" }}
 %% Generated for message type {{ .FullName }}.
 -record({{ .ErlName }}, {
+  {{- $first := true }}
+
   {{- range $i, $f := .Fields }}
-  {{- if gt $i 0 }},{{ end }}{{- template "erl_field" . }}
+    {{- if not $f.OneofType }}
+      {{- if $first  }}{{  $first = false  }}{{- else }},{{- end }}
+      {{- template "erl_field" . }}
+    {{- end }}
+  {{- end }}
+
+  {{- range $i, $f := .Oneofs }}
+    {{- if $first  }}{{  $first = false  }}{{- else }},{{- end }}
+    {{- template "erl_oneof" . }}
   {{- end }}
 }).
 {{- end }}
